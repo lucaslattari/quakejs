@@ -1,0 +1,156 @@
+<!DOCTYPE html> <!-- Codificação da fonte-->
+<html>
+	<head>
+		<meta charset=utf-8> <!-- Codificação da fonte-->
+		<title>Motor do Quake 3</title>
+		<style>
+			body { margin: 0; }
+			canvas { width: 100%; height: 100% }
+		</style>
+	</head>
+	<body>
+		<script type="module">
+
+		import * as THREE from "/build/three.module.js";
+		import Stats from "/jsm/libs/stats.module.js";
+		import { FirstPersonControls } from './jsm/controls/FirstPersonControls.js';
+		//import { GUI } from "/jsm/libs/dat.gui.module.js";
+
+		//INSERE FPS
+		var stats = new Stats();
+		stats.showPanel(0); // 0: fps, 1: ms, 2: mb, 3+: custom
+		document.body.appendChild(stats.dom);
+
+		var clock;
+		function initClock()
+		{
+			clock = new THREE.Clock();
+		}
+
+		var scene;
+		function initScene()
+		{
+			scene = new THREE.Scene();
+		}
+
+		var camera;
+		function initCameraFly()
+		{
+			camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 10000); //ângulo de abertura da câmera, aspect ration, near e far-
+			camera.position.x = 0;
+			camera.position.y = 0;
+			camera.position.z = -700;
+			camera.lookAt(new THREE.Vector3(0, 0, 0));
+		}
+
+		var renderer;
+		function initRenderer()
+		{
+			renderer = new THREE.WebGLRenderer();
+			renderer.setSize(window.innerWidth, window.innerHeight); //área do browser "preenchida"
+			document.body.appendChild(renderer.domElement); //adiciona o renderer ao documento HTML
+		}
+
+		var axes;
+		function addAxisInScene()
+		{
+			axes = new THREE.AxesHelper(20);
+			scene.add(axes);
+		}
+
+		import { BSPFileReader } from './js/bspFileReader.js';
+		function loadBSP(filename)
+		{
+			let bspReader = new BSPFileReader(filename);
+			bspReader.load();
+
+			//readHeader(bspData);
+		}
+
+		var flyControls;
+		function startFlyCamera()
+		{
+			//criando uma região que vai conter a câmera
+			var container = document.createElement('div');
+			document.body.appendChild(container);
+
+			flyControls = new FirstPersonControls( camera, renderer.domElement );
+			flyControls.movementSpeed = 100;
+			flyControls.domElement = container;
+			flyControls.rollSpeed = Math.PI / 24;
+			flyControls.autoForward = false;
+			flyControls.dragToLook = false;
+
+			container.appendChild(renderer.domElement);
+		}
+
+		var controls;
+		function startGUIOfFlyCamera()
+		{
+			controls = new function()
+			{
+				this.movementSpeed	= 100.0;
+				this.rollSpeed 			= Math.PI / 24;
+				this.autoForward		= false;
+				this.dragToLook 		= false;
+			};
+
+			/*var gui = new GUI(
+				{autoplace: false, width: 300}
+			);
+			gui.add(controls, 'movementSpeed', 0, 200.0);
+			gui.add(controls, 'rollSpeed', 0, Math.PI);
+			gui.add(controls, 'autoForward');
+			gui.add(controls, 'dragToLook');*/
+		}
+
+		function startApplication()
+		{
+			initClock();
+			initScene();
+			initCameraFly();
+			initRenderer();
+			addAxisInScene();
+			loadBSP("final.bsp");
+			startFlyCamera();
+			startGUIOfFlyCamera();
+		}
+
+		function updateFlyCamera(delta)
+		{
+			if(flyControls == null)
+			{
+				return;
+			}
+
+			flyControls.update(delta);
+
+			flyControls.movementSpeed 		= controls.movementSpeed;
+			flyControls.rollSpeed 				= controls.rollSpeed;
+			flyControls.autoForward 	 		= controls.autoForward;
+			flyControls.dragToLook 				= controls.dragToLook;
+		}
+
+		function render() {
+
+			stats.begin();
+
+			var delta = clock.getDelta();
+
+			//normalmente passamos 1/60, assumindo 60fps, mas não temos
+			//como garantir isso. sendo assim, passamos o tempo passado
+			//entre um frame e outro
+			updateFlyCamera(delta);
+
+			renderer.render(scene, camera);
+
+			stats.end();
+
+			requestAnimationFrame(render);
+		};
+
+		startApplication();
+		render();
+		</script>
+	</body>
+</html>
